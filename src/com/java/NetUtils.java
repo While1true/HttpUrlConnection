@@ -93,7 +93,9 @@ public class NetUtils {
                 reader.close();
                 connection.disconnect();
                 return buffer.toString();
-            }
+            } else {
+                System.out.println(connection.getResponseCode() + "访问错误");
+                }
             connection.disconnect();
         } catch (MalformedURLException e) {
             e.printStackTrace();
