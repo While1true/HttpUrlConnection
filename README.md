@@ -1,4 +1,5 @@
 # HttpUrlConnection
+## 有时候轻量级的，如果你不想导入第三方库，这个原生自带直接用就可以
 get post 上传 下载 进度
 ```
 public class Main {
