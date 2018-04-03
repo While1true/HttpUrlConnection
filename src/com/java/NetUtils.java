@@ -16,12 +16,18 @@ import java.util.Set;
  */
 
 public class NetUtils {
-    public static int LISTENER_PERIOD=500;
+    public static int LISTENER_PERIOD = 500;
+    public static int EXCEPTION = 800;
 
     public static String get(String url) {
-        return get(url, null);
+        return get(url, null, null);
     }
+
     public static String get(String url, Params params) {
+        return get(url, params, null);
+    }
+
+    public static String get(String url, Params params, ProgressListener listener) {
         try {
             if (params != null) {
                 if (!url.endsWith("?")) {
@@ -32,9 +38,9 @@ public class NetUtils {
             URL urlx = new URL(url);
             HttpURLConnection connection = (HttpURLConnection) urlx.openConnection();
 
-            if(params!=null) {
+            if (params != null) {
                 for (Map.Entry<String, String> entry : params.headers.entrySet()) {
-                    connection.addRequestProperty(entry.getKey(),entry.getValue());
+                    connection.addRequestProperty(entry.getKey(), entry.getValue());
                 }
             }
 
@@ -50,19 +56,26 @@ public class NetUtils {
                 connection.disconnect();
                 return buffer.toString();
             } else {
-                System.out.println(connection.getResponseCode() + "访问错误");
+                if (listener != null) {
+                    listener.onError(connection.getResponseCode(), connection.getResponseMessage());
+                }
             }
             connection.disconnect();
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            if (listener != null) {
+                listener.onError(EXCEPTION, e.getMessage());
+            }
+           e.printStackTrace();
         }
 
         return null;
     }
 
     public static String post(String url, Params params) {
+        return post(url, params, null);
+    }
+
+    public static String post(String url, Params params, ProgressListener listener) {
         try {
             URL urlx = new URL(url);
             HttpURLConnection connection = (HttpURLConnection) urlx.openConnection();
@@ -73,9 +86,9 @@ public class NetUtils {
             connection.setInstanceFollowRedirects(true);
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
-            if(params!=null) {
+            if (params != null) {
                 for (Map.Entry<String, String> entry : params.headers.entrySet()) {
-                    connection.addRequestProperty(entry.getKey(),entry.getValue());
+                    connection.addRequestProperty(entry.getKey(), entry.getValue());
                 }
                 DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream());
                 outputStream.write(params.toParamsString().getBytes());
@@ -94,12 +107,15 @@ public class NetUtils {
                 connection.disconnect();
                 return buffer.toString();
             } else {
-                System.out.println(connection.getResponseCode() + "访问错误");
+                if (listener != null) {
+                    listener.onError(connection.getResponseCode(), connection.getResponseMessage());
                 }
+            }
             connection.disconnect();
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (Exception e) {
+            if (listener != null) {
+                listener.onError(EXCEPTION, e.getMessage());
+            }
             e.printStackTrace();
         }
 
@@ -119,13 +135,13 @@ public class NetUtils {
             connection.setUseCaches(false);
             connection.setInstanceFollowRedirects(true);
             connection.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
-            if(params!=null) {
+            if (params != null) {
                 for (Map.Entry<String, String> entry : params.headers.entrySet()) {
-                    connection.addRequestProperty(entry.getKey(),entry.getValue());
+                    connection.addRequestProperty(entry.getKey(), entry.getValue());
                 }
             }
             DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream());
-            if(params!=null) {
+            if (params != null) {
                 Set<Map.Entry<String, String>> entries = params.files.entrySet();
                 for (Map.Entry<String, String> entry : entries) {
                     String keyname = entry.getKey();
@@ -134,7 +150,7 @@ public class NetUtils {
                         outputStream.writeBytes(twoHyphens + boundary + end);
                         outputStream.writeBytes("Content-Disposition: form-data; " + "name=\"" + keyname + "\";filename=\"" + file.getName()
                                 + "\"" + end);
-                        outputStream.writeBytes("Content-Type: application/octet-stream; charset=utf-8"+end);
+                        outputStream.writeBytes("Content-Type: application/octet-stream; charset=utf-8" + end);
                         outputStream.writeBytes(end);
                         FileInputStream fStream = new FileInputStream(file);
                         int bufferSize = 2048;
@@ -150,7 +166,7 @@ public class NetUtils {
                             long temp = System.currentTimeMillis();
                             if (temp - lastTime > LISTENER_PERIOD || current == total) {
                                 if (listener != null) {
-                                    listener.call(current, total,(int)((current-last)/(temp - last)), keyname);
+                                    listener.call(current, total, (int) ((current - last) / (temp - last)), keyname);
                                 }
                                 lastTime = temp;
                                 last = current;
@@ -165,7 +181,7 @@ public class NetUtils {
                     outputStream.writeBytes(twoHyphens + boundary + end);
                     outputStream.writeBytes("Content-Disposition: form-data; " + "name=\"" + entry.getKey()
                             + "\"" + end);
-                    outputStream.writeBytes("Content-Type: text/plain; charset=utf-8"+end);
+                    outputStream.writeBytes("Content-Type: text/plain; charset=utf-8" + end);
                     outputStream.write(end.getBytes());
                     outputStream.write(entry.getValue().getBytes());
                     outputStream.write(end.getBytes());
@@ -186,12 +202,15 @@ public class NetUtils {
                 connection.disconnect();
                 return buffer.toString();
             } else {
-                System.out.println(connection.getResponseCode() + "访问错误");
+                if (listener != null) {
+                    listener.onError(connection.getResponseCode(), connection.getResponseMessage());
+                }
             }
             connection.disconnect();
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (Exception e) {
+            if (listener != null) {
+                listener.onError(EXCEPTION, e.getMessage());
+            }
             e.printStackTrace();
         }
 
@@ -223,36 +242,73 @@ public class NetUtils {
                     outputStream.write(bytes, 0, read);
                     current += read;
                     long temp = System.currentTimeMillis();
-                    if(temp - lastTime > LISTENER_PERIOD || current == total) {
+                    if (temp - lastTime > LISTENER_PERIOD || current == total) {
                         if (listener != null) {
-                            listener.call(current, total,(int)((current-last)/(temp - lastTime)), file.getName());
+                            listener.call(current, total, (int) ((current - last) / (temp - lastTime)), file.getName());
                         }
-                        lastTime=temp;
-                        last=current;
+                        lastTime = temp;
+                        last = current;
                     }
                 }
                 outputStream.flush();
                 outputStream.close();
                 inputStream.close();
             } else {
-                System.out.println(connection.getResponseCode() + "访问错误");
+                if (listener != null) {
+                    listener.onError(connection.getResponseCode(), connection.getResponseMessage());
+                }
             }
             connection.disconnect();
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            if (listener != null) {
+                listener.onError(EXCEPTION, e.getMessage());
+            }
+           e.printStackTrace();
         }
     }
 
-    public static interface ProgressListener {
-        void call(long current, long total,int speed, String keyname);
+    public static boolean isCompleteExist(String url, File file) {
+        if (file.exists()) {
+            HttpURLConnection connection = null;
+            FileInputStream is = null;
+            try {
+                is = new FileInputStream(file);
+                URL urlx = new URL(url);
+                connection = (HttpURLConnection) urlx.openConnection();
+                return (is.available() > 0 && is.available() == connection.getContentLength());
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+                if (is != null) {
+                    try {
+                        is.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        return false;
     }
 
-    public static class Params{
-        private LinkedHashMap<String, String> params =new LinkedHashMap();
-        private LinkedHashMap<String, String> headers =new LinkedHashMap();
-        private LinkedHashMap<String, String> files =new LinkedHashMap();
+    public static interface ProgressListener {
+        void call(long current, long total, int speed, String keyname);
+
+        void onError(int code, String message);
+    }
+
+    public static class Params {
+        private LinkedHashMap<String, String> params = new LinkedHashMap();
+        private LinkedHashMap<String, String> headers = new LinkedHashMap();
+        private LinkedHashMap<String, String> files = new LinkedHashMap();
+
         public Params add(String key) {
             params.put(key, "");
             return this;
@@ -267,6 +323,7 @@ public class NetUtils {
             params.put(key, object == null ? "" : object.toString());
             return this;
         }
+
         public Params addHeader(String key) {
             headers.put(key, "");
             return this;
