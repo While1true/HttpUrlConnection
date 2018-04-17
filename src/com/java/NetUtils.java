@@ -146,7 +146,6 @@ public class NetUtils {
             connection.setRequestProperty("Content-Type", "text/xml;charset=UTF-8");
 
             String s = params.toBaos(method);
-            System.out.println(s);
             OutputStream outputStream = connection.getOutputStream();
             outputStream.write(s.getBytes());
             outputStream.flush();
