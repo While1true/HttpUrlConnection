@@ -5,10 +5,18 @@
 ```
 public class Main {
 
-    public static void main(String[] args) {
-
-
-        String soap = NetUtils.doSoap(
+    public static void main(String[] args) {
+-------------------------------------------------------
+<element name="getUserInfo">
+<complexType>
+<sequence>
+<element name="userName" type="xsd:string"/>
+<element name="token" type="xsd:string"/>
+</sequence>
+</complexType>
+</element>
+--------------------------------------------------------
+        String soap = NetUtils.doSoap(
                 "http://10.0.110.117:8080/Androidpacs/services/PacsAppController",
                 "getUserInfo",
                 new NetUtils.Params()
