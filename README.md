@@ -1,7 +1,7 @@
 # HttpUrlConnection
 ## 如果你不想导入第三方库，这个原生自带直接用就可以
-1.支持 get post 上传 下载 进度
-2.支持 webservice
+### 1.支持 get post 上传 下载 进度
+### 2.支持 webservice webservice需要按自己实际项目情况改造解析规则和参数规则，只用作示例
 ```
 public class Main {
 
