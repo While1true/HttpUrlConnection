@@ -1,7 +1,5 @@
 package com.java;
 
-import com.sun.xml.internal.ws.util.StringUtils;
-
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -10,15 +8,10 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.rmi.ConnectException;
-import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -41,7 +34,7 @@ public class NetUtils {
         return get(url, params, null);
     }
 
-    public static String get(String url, Params params, ProgressListener listener) {
+    public static String get(String url, Params params, NetCallback listener) {
         try {
             if (params != null) {
                 if (!url.endsWith("?")) {
@@ -89,7 +82,7 @@ public class NetUtils {
         return post(url, params, null);
     }
 
-    public static String post(String url, Params params, ProgressListener listener) {
+    public static String post(String url, Params params, NetCallback listener) {
         try {
             URL urlx = new URL(url);
             HttpURLConnection connection = (HttpURLConnection) urlx.openConnection();
@@ -139,7 +132,7 @@ public class NetUtils {
         return doSoap(url,method,params,null);
     }
 
-        public static String doSoap(String url, String method, Params params, ProgressListener listener) {
+        public static String doSoap(String url, String method, Params params, NetCallback listener) {
         try {
             if (url.endsWith("?wsdl")) {
                 url = url.substring(0, url.lastIndexOf("?"));
@@ -179,7 +172,7 @@ public class NetUtils {
         return null;
     }
 
-    public static String upload(String url, Params params, ProgressListener listener) {
+    public static String upload(String url, Params params, NetCallback listener) {
         String boundary = "*****";
         String twoHyphens = "--";
         String end = "\r\n";
@@ -274,7 +267,7 @@ public class NetUtils {
         return null;
     }
 
-    public static void download(String url, File file, ProgressListener listener) {
+    public static void download(String url, File file, NetCallback listener) {
         try {
             URL urlx = new URL(url);
             HttpURLConnection connection = (HttpURLConnection) urlx.openConnection();
@@ -355,7 +348,7 @@ public class NetUtils {
         return false;
     }
 
-    public static abstract class ProgressListener {
+    public static abstract class NetCallback {
         void call(long current, long total, int speed, String keyname){}
 
         void onError(int code, String message){}
