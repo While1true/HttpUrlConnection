@@ -1,11 +1,21 @@
 # HttpUrlConnection
-## 有时候轻量级的，如果你不想导入第三方库，这个原生自带直接用就可以
-get post 上传 下载 进度
+## 如果你不想导入第三方库，这个原生自带直接用就可以
+1.支持 get post 上传 下载 进度
+2.支持 webservice
 ```
 public class Main {
 
     public static void main(String[] args) {
 
+
+        String soap = NetUtils.doSoap(
+                "http://10.0.110.117:8080/Androidpacs/services/PacsAppController",
+                "getUserInfo",
+                new NetUtils.Params()
+                        .add("userName", "kesuzhen")
+                        .add("token"));
+                        
+                        
         String result = NetUtils.get("http://10.0.110.134:8090/masterWeiBo/getHistory100",
                 new NetUtils.Params()
                         .add("user","1ec5b436727ddc245b8e2a984eab14b3"));
