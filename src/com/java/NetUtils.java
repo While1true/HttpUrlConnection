@@ -355,9 +355,9 @@ public class NetUtils {
     }
 
     public static class Params {
-        private LinkedHashMap<String, String> params = new LinkedHashMap();
-        private LinkedHashMap<String, String> headers = new LinkedHashMap();
-        private LinkedHashMap<String, String> files = new LinkedHashMap();
+        private LinkedHashMap<String, String> params = new LinkedHashMap<>();
+        private LinkedHashMap<String, String> headers = new LinkedHashMap<>();
+        private LinkedHashMap<String, String> files = new LinkedHashMap<>();
 
         public Params add(String key) {
             params.put(key, "");
@@ -502,7 +502,7 @@ public static class XmlParse {
 
         @Override
         public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
-            if (qName.equals(tag)) {
+            if (qName.equals(tag)&&result==null) {
                 canpares = true;
             }
             super.startElement(uri, localName, qName, attributes);
