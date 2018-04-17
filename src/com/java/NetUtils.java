@@ -1,14 +1,28 @@
 package com.java;
 
+import com.sun.xml.internal.ws.util.StringUtils;
+
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
+
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.rmi.ConnectException;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 
 
 /**
@@ -65,7 +79,7 @@ public class NetUtils {
             if (listener != null) {
                 listener.onError(EXCEPTION, e.getMessage());
             }
-           e.printStackTrace();
+            e.printStackTrace();
         }
 
         return null;
@@ -106,6 +120,49 @@ public class NetUtils {
                 reader.close();
                 connection.disconnect();
                 return buffer.toString();
+            } else {
+                if (listener != null) {
+                    listener.onError(connection.getResponseCode(), connection.getResponseMessage());
+                }
+            }
+            connection.disconnect();
+        } catch (Exception e) {
+            if (listener != null) {
+                listener.onError(EXCEPTION, e.getMessage());
+            }
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+    public static String doSoap(String url, String method, Params params) {
+        return doSoap(url,method,params,null);
+    }
+
+        public static String doSoap(String url, String method, Params params, ProgressListener listener) {
+        try {
+            if (url.endsWith("?wsdl")) {
+                url = url.substring(0, url.lastIndexOf("?"));
+            }
+            URL urlx = new URL(url);
+            HttpURLConnection connection = (HttpURLConnection) urlx.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            connection.setDoInput(true);
+            connection.setRequestProperty("SOAPAction", "");
+            connection.setRequestProperty("Content-Type", "text/xml;charset=UTF-8");
+
+            String s = params.toBaos(method);
+            System.out.println(s);
+            OutputStream outputStream = connection.getOutputStream();
+            outputStream.write(s.getBytes());
+            outputStream.flush();
+            outputStream.close();
+            connection.connect();
+            if (connection.getResponseCode() == 200) {
+                InputStream inputStream = connection.getInputStream();
+
+                return XmlParse.parse(inputStream,method+"Return");
             } else {
                 if (listener != null) {
                     listener.onError(connection.getResponseCode(), connection.getResponseMessage());
@@ -263,7 +320,7 @@ public class NetUtils {
             if (listener != null) {
                 listener.onError(EXCEPTION, e.getMessage());
             }
-           e.printStackTrace();
+            e.printStackTrace();
         }
     }
 
@@ -298,10 +355,10 @@ public class NetUtils {
         return false;
     }
 
-    public static interface ProgressListener {
-        void call(long current, long total, int speed, String keyname);
+    public static abstract class ProgressListener {
+        void call(long current, long total, int speed, String keyname){}
 
-        void onError(int code, String message);
+        void onError(int code, String message){}
     }
 
     public static class Params {
@@ -369,5 +426,94 @@ public class NetUtils {
             return paramsStr;
         }
 
+        private String toBaos(String method) {
+            StringBuilder builder = new StringBuilder();
+            String paramsSample = " <web:{0}>{1}</web:{0}>";
+            builder.append("<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:web=\"http://webservice\">" +
+                    "<soapenv:Header>");
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                builder.append(paramsSample.replace("{0}", entry.getKey()).replace("{1}", entry.getValue()));
+            }
+            builder.append("</soapenv:Header>");
+            builder.append("<soapenv:Body>");
+            builder.append("  <web:" + method + ">");
+            for (Map.Entry<String, String> entry : params.entrySet()) {
+                builder.append(paramsSample.replace("{0}", entry.getKey()).replace("{1}", entry.getValue()));
+            }
+            builder.append("</web:" + method + ">");
+            builder.append("</soapenv:Body>" +
+                    "</soapenv:Envelope>");
+            return builder.toString();
+        }
     }
+
+public static class XmlParse {
+    private static SAXParser saxParser;
+
+    private static SAXParser get() {
+        if (saxParser == null) {
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            try {
+                saxParser = factory.newSAXParser();
+
+            } catch (ParserConfigurationException e) {
+                e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return saxParser;
+    }
+
+    public static String parse(InputStream is, String tag) {
+        try {
+            MyOneElementHandler dh = new MyOneElementHandler(tag);
+            get().parse(is, dh);
+            return dh.result;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static String parse(String is, String tag) {
+        return parse(new ByteArrayInputStream(is.getBytes()), tag);
+    }
+
+    public static class MyOneElementHandler extends DefaultHandler {
+        private String tag;
+        private boolean canpares = false;
+        String result;
+
+        public MyOneElementHandler(String tag) {
+            this.tag = tag;
+        }
+
+        @Override
+        public void characters(char[] ch, int start, int length) throws SAXException {
+            if (canpares) {
+                if (result == null) {
+                    result = "";
+                }
+                result += String.valueOf(ch, start, length);
+            }
+        }
+
+        @Override
+        public void endElement(String uri, String localName, String qName) throws SAXException {
+            if (qName.equals(tag)) {
+                canpares = false;
+            }
+            super.endElement(uri, localName, qName);
+        }
+
+        @Override
+        public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
+            if (qName.equals(tag)) {
+                canpares = true;
+            }
+            super.startElement(uri, localName, qName, attributes);
+        }
+    }
+}
 }
